@@ -274,7 +274,7 @@ Our seven bias types span source attribution (Prestige), length (Verbosity), soc
 \end{table*}
 
 \paragraph{Data, judges, and protocol.}
-We instantiate the methodology on 4{,}500 questions sampled evenly from nine diverse benchmarks---GSM8K, MMLU, TruthfulQA, CommonsenseQA, PubMedQA, GPQA, ARC-Challenge, SocialMaze, and BBQ---covering mathematical reasoning, factual knowledge, commonsense inference, biomedical science, social cognition, and fairness-sensitive domains. Baseline answers are produced by a heterogeneous pool of six high-capability models; applying both polarities of each of the seven bias types yields $4{,}500 \times 7 = 31{,}500$ positively and $31{,}500$ negatively perturbed samples. We evaluate seven LLM judges spanning proprietary and open-source families: \textsc{GPT-4.1}, \textsc{GPT-4o-Mini}, \textsc{Llama-3.1-8B}, \textsc{Llama-3.3-70B}, \textsc{Qwen3-14B}, \textsc{Gemma-3-12B}, and \textsc{Deepseek-V3} \citep{deepseekai2025deepseekv3technicalreport}. Activation-level analyses focus on the three open-source mid-scale models for which we hold full white-box access, with \textsc{Llama-3.1-8B} as the primary judge in all main-text figures and tables; cross-model replications spanning all seven judges are in \Cref{app:model_replication}. Scoring prompts vary along two orthogonal axes---Chain-of-Thought and Strict grading---yielding four configurations; after confirming findings hold across all four (\Cref{subsec:asymmetry}), we adopt the \emph{strict, non-CoT} setting as the default because it provides sufficient headroom for both positive and negative effects. Data is partitioned into training (45\%), development (15\%), and test (40\%) splits using a nested design: training and development draw from six benchmarks, while the test split spans all nine, letting it simultaneously measure generalization to unseen questions and to entirely unseen domains. Full dataset construction and implementation details are in \Cref{app:setup,app:implementation}.
+We instantiate the methodology on 4{,}500 questions sampled evenly from nine diverse benchmarks---GSM8K, MMLU, TruthfulQA, CommonsenseQA, PubMedQA, GPQA, ARC-Challenge, SocialMaze, and BBQ---covering mathematical reasoning, factual knowledge, commonsense inference, biomedical science, social cognition, and fairness-sensitive domains. Baseline answers are produced by a heterogeneous pool of six high-capability models; applying both polarities of each of the seven bias types yields $4{,}500 \times 7 = 31{,}500$ positively and $31{,}500$ negatively perturbed samples. We evaluate seven LLM judges spanning proprietary and open-source families: \textsc{GPT-4.1}, \textsc{GPT-4o-Mini}, \textsc{Llama-3.1-8B}, \textsc{Llama-3.3-70B}, \textsc{Qwen3-14B}, \textsc{Gemma-3-12B}, and \textsc{Deepseek-V3} (model citations in \Cref{app:protocol}). Activation-level analyses focus on the three open-source mid-scale models for which we hold full white-box access, with \textsc{Llama-3.1-8B} as the primary judge in all main-text figures and tables; cross-model replications spanning all seven judges are in \Cref{app:model_replication}. Scoring prompts vary along two orthogonal axes---Chain-of-Thought and Strict grading---yielding four configurations; after confirming findings hold across all four (\Cref{subsec:asymmetry}), we adopt the \emph{strict, non-CoT} setting as the default because it provides sufficient headroom for both positive and negative effects. Data is partitioned into training (45\%), development (15\%), and test (40\%) splits using a nested design: training and development draw from six benchmarks, while the test split spans all nine, letting it simultaneously measure generalization to unseen questions and to entirely unseen domains. Full dataset construction and implementation details are in \Cref{app:setup,app:implementation}.
 
 
 \subsection{The Empirical Landscape of Scoring Bias}
@@ -285,13 +285,6 @@ Before examining internal representations, we first establish the empirical real
 \paragraph{Asymmetric response to perturbations.}
 \phantomsection\label{subsec:asymmetry}
 We scored all 4{,}500 baseline, 31{,}500 positively perturbed, and 31{,}500 negatively perturbed samples across our judge models and prompt configurations. The results reveal a striking and consistent asymmetry: \emph{negative perturbations induce substantial score degradation, while positive perturbations have negligible effect}. For \textsc{GPT-4.1} across all four prompt configurations (\Cref{tab:asymmetric_scoring}), negative perturbations consistently produce large, statistically significant score drops (Cohen's $d \in [-0.58, -0.35]$, all $p < 10^{-3}$), whereas positive perturbations yield negligible shifts (Cohen's $d \approx 0$). This persists whether CoT or stricter scoring criteria are used, ruling out prompting artifacts; the strict configurations lower the baseline mean from ${\sim}8.5$ to ${\sim}5.5$, eliminating the possibility that the absence of positive inflation is merely a ceiling effect. \Cref{fig:score_dist} shows the score distributions from \textsc{Llama-3.1-8B}: baseline mean 5.84, positive 5.91 ($d=0.048$, practically negligible), negative 5.12 ($d=-0.505$, $p<10^{-189}$). LLM judges are substantially more vulnerable to negative cues than to positive flattery---a pronounced negativity bias that shapes our subsequent analysis. The pattern replicates across all seven judges (\Cref{app:asymmetry_replication}).
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{images/score_distribution_Llama-3.1-8B.pdf}
-\caption{Score distributions from \textsc{Llama-3.1-8B} (strict, non-CoT). $\mathcal{D}_{\text{pos}}$ nearly overlaps with $\mathcal{D}_{\text{base}}$, whereas $\mathcal{D}_{\text{neg}}$ exhibits a substantial leftward shift.}
-\label{fig:score_dist}
-\end{figure}
 
 \begin{table*}[t]
 \centering
@@ -314,9 +307,16 @@ We scored all 4{,}500 baseline, 31{,}500 positively perturbed, and 31{,}500 nega
 \end{tabular}
 \end{table*}
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{images/score_distribution_Llama-3.1-8B.pdf}
+\caption{Score distributions from \textsc{Llama-3.1-8B} (strict, non-CoT). $\mathcal{D}_{\text{pos}}$ nearly overlaps with $\mathcal{D}_{\text{base}}$, whereas $\mathcal{D}_{\text{neg}}$ exhibits a substantial leftward shift.}
+\label{fig:score_dist}
+\end{figure*}
+
 
 \paragraph{Type heterogeneity and domain interaction.}
-Bias types are far from interchangeable. Bandwagon$-$ produces the largest negative effect ($-1.56$, baseline 5.84), followed by Diversity$-$ and Authority$-$; Sentiment$-$ has almost no effect. On the positive side only Refinement$+$ produces a clear boost; most other positive perturbations are ineffective. Crucially, the positive and negative rankings are \emph{not} mirror images---Bandwagon is the strongest negative bias but among the weakest positive ones, while Refinement dominates the positive side but ranks only fourth negatively---suggesting that the two polarities engage different internal mechanisms, a hypothesis we test in \Cref{subsec:geometry}. \Cref{tab:bias_type_impact} reports per-type mean scores; the per-type, per-domain heatmap is in \Cref{app:landscape_details}. The type effect interacts strongly with semantic domain: Bandwagon$-$ is especially devastating on reasoning benchmarks (CommonsenseQA: $-2.46$, ARC: $-2.13$), Diversity$-$ peaks on socially relevant data (SocialMaze, BBQ), and Authority$-$ on knowledge-intensive ones (PubMedQA: $-1.25$, MMLU: $-0.98$).
+Bias types are far from interchangeable. Bandwagon$-$ produces the largest negative effect ($-1.56$, baseline 5.84), followed by Diversity$-$ and Authority$-$; Sentiment$-$ has almost no effect. On the positive side only Refinement$+$ produces a clear boost; most other positive perturbations are ineffective. Crucially, the positive and negative rankings are \emph{not} mirror images---Bandwagon is the strongest negative bias but among the weakest positive ones, while Refinement dominates the positive side but ranks only fourth negatively---suggesting that the two polarities engage different internal mechanisms, a hypothesis we test in \Cref{subsec:geometry}. \Cref{tab:bias_type_impact} reports per-type mean scores and \Cref{fig:bias_heatmap} shows the per-type, per-domain heatmap. The type effect interacts strongly with semantic domain: Bandwagon$-$ is especially devastating on reasoning benchmarks (CommonsenseQA: $-2.46$, ARC: $-2.13$), Diversity$-$ peaks on socially relevant data (SocialMaze, BBQ), and Authority$-$ on knowledge-intensive ones (PubMedQA: $-1.25$, MMLU: $-0.98$).
 
 \begin{table}[t]
 \centering
@@ -341,6 +341,13 @@ Bandwagon & 5.38 & \textcolor{orange}{$\downarrow\downarrow$} & Sentiment & 5.77
 \end{tabular}
 \end{table}
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{images/bias_heatmap.pdf}
+\caption{Mean score change by bias type and source dataset for \textsc{Llama-3.1-8B}. \textbf{(a)} Positive biases. \textbf{(b)} Negative biases. CSQA denotes CommonsenseQA. Vulnerability is not uniform---certain domains are differentially susceptible to specific bias types.}
+\label{fig:bias_heatmap}
+\end{figure*}
+
 
 \subsection{Activation Geometry}
 \label{subsec:geometry}
@@ -349,11 +356,25 @@ Having established the behavioral landscape, we now examine the judge's internal
 
 \paragraph{A fair region in hidden space.}
 \phantomsection\label{subsec:fair_region}
-MDS projections of final-token activations at layer 25 (\Cref{fig:activation_mds_combined}, \Cref{app:visualizations}) reveal that baseline activations form a tight cluster while the vast majority of biased activations---regardless of polarity---sit at a substantial distance from this region. Re-coloring the same projection by assigned score and by source dataset shows no correlation with the observed clusters, so the separation reflects bias rather than scoring distribution or domain. PCA yields the same picture, and the pattern holds at earlier layers. Unbiased activations therefore occupy a stable \emph{fair region} from which biased inputs are systematically displaced.
+MDS projections of final-token activations at layer 25 (\Cref{fig:activation_mds_combined}) reveal that baseline activations form a tight cluster while the vast majority of biased activations---regardless of polarity---sit at a substantial distance from this region. Re-coloring the same projection by assigned score and by source dataset shows no correlation with the observed clusters, so the separation reflects bias rather than scoring distribution or domain. PCA yields the same picture (\Cref{app:visualizations}), and the pattern holds at earlier layers. Unbiased activations therefore occupy a stable \emph{fair region} from which biased inputs are systematically displaced.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{images/activation_mds_layer25_combined.pdf}
+\caption{MDS projection of final-token activations at layer 25 of \textsc{Llama-3.1-8B} for $\mathcal{D}_{\text{base}}$ and four bias types (Bandwagon$-$, Diversity$-$, Refinement$+$, Sentiment$+$). \textbf{(a)} Points colored by bias condition: baseline activations form a tight cluster, while most biased activations are displaced to a distant region regardless of polarity. \textbf{(b)} Points colored by assigned score. \textbf{(c)} Points colored by source dataset. Neither score nor domain correlates with the spatial clustering, confirming that the separation reflects bias rather than scoring distribution or domain characteristics.}
+\label{fig:activation_mds_combined}
+\end{figure*}
 
 \paragraph{Type-specific directions of displacement.}
 \phantomsection\label{subsec:directional_separation}
 The fair region tells us \emph{that} biased activations are displaced; the effective bias vectors $\Delta \vec{h}_l(x)$ tell us \emph{how}. MDS projections of $\Delta \vec{h}_l$ for cross-polarity (Refinement$+$ vs.\ Diversity$-$, \Cref{fig:mds_bias_vectors}) and same-polarity (Bandwagon$-$ vs.\ Diversity$-$, \Cref{app:visualizations}) pairs show the same progressive separation: weak at layer 5, clear at layer 15, fully distinct at layer 25. Each bias type carves out its own geometric trajectory, and this is consistent across architectures (\Cref{app:geometric_replication}). PCA on the raw activations shows $\mathcal{H}_{\text{base}}$, $\mathcal{H}_{\text{pos}}$, $\mathcal{H}_{\text{neg}}$ intermingled along the principal components (capturing 80\%\,+ of variance), so the bias-induced shift is \emph{orthogonal to the dominant content axes}---a subtle, non-principal direction rather than a generic ``low-quality'' signal.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{images/effective_bias_vectors_ref_div_llama.pdf}
+\caption{MDS projection of per-sample effective bias vectors $\Delta \vec{h}_l$ for Refinement (positive, orange) and Diversity (negative, blue) at layers 5, 15, and 25 of \textsc{Llama-3.1-8B}. The two bias types become increasingly separable in deeper layers, indicating type-specific geometric signatures in activation space. Replications on \textsc{Qwen3-14B} and \textsc{Gemma-3-12B} (\Cref{app:geometric_replication}) show the same pattern.}
+\label{fig:mds_bias_vectors}
+\end{figure*}
 
 \paragraph{Depth sharpens the bias subspace.}
 \phantomsection\label{subsec:layer_analysis}
@@ -554,8 +575,9 @@ This appendix gives one concrete example per bias type, so the perturbation pipe
 \label{tab:perturbation_examples}
 \small
 \renewcommand{\arraystretch}{1.35}
+\setlength{\tabcolsep}{4pt}
 \rowcolors{2}{gray!8}{white}
-\begin{tabular}{p{1.7cm} p{6.6cm} p{6.6cm}}
+\begin{tabular}{p{1.5cm} p{6.4cm} p{6.4cm}}
 \toprule
 \textbf{Bias} & \textbf{Positive variant ($a^{\text{pos}}$)} & \textbf{Negative variant ($a^{\text{neg}}$)} \\
 \midrule
@@ -693,19 +715,6 @@ Asymmetry tests (\Cref{subsec:asymmetry}) use Welch's two-sample $t$-test on the
 
 \paragraph{Reproducibility.}
 All experiments use seed 42. The 45/15/40 split is fixed at the question-ID level and stored on disk, so partitions never depend on a random call at inference time. Code, configuration files, and the integer-score outputs of every judge will be released under MIT; raw activations exceed 200\,GB and will be regeneratable from the released code rather than redistributed. An EMNLP-style reproducibility checklist accompanies the submission.
-
-
-\section{Bias Landscape Details}
-\label{app:landscape_details}
-
-The per-type mean scores for \textsc{Llama-3.1-8B} (baseline mean 5.84) referenced in \Cref{subsec:landscape} are reported in \Cref{tab:bias_type_impact} in the main text. \Cref{fig:bias_heatmap} below shows the per-type, per-domain heatmap.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{images/bias_heatmap.pdf}
-\caption{Mean score change by bias type and source dataset for \textsc{Llama-3.1-8B}. \textbf{(a)} Positive biases. \textbf{(b)} Negative biases. CSQA denotes CommonsenseQA. Vulnerability is not uniform---certain domains are differentially susceptible to specific bias types.}
-\label{fig:bias_heatmap}
-\end{figure*}
 
 
 \section{Cross-Model Replication}
@@ -1065,16 +1074,7 @@ Defense results mirror the attack findings in structure: activation-based defens
 \section{Additional Activation Visualizations}
 \label{app:visualizations}
 
-\subsection{Fair Region at Layer 25}
-
-\Cref{fig:activation_mds_combined} shows the MDS projection underlying the fair-region discussion in \Cref{subsec:fair_region}: at layer 25, baseline activations form a tight cluster while the vast majority of biased activations---across polarities---are displaced. Re-coloring by score (b) or source dataset (c) shows no correlation with the clusters, confirming that the separation reflects bias rather than scoring distribution or domain.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{images/activation_mds_layer25_combined.pdf}
-\caption{MDS projection of final-token activations at layer 25 of \textsc{Llama-3.1-8B} for $\mathcal{D}_{\text{base}}$ and four bias types (Bandwagon$-$, Diversity$-$, Refinement$+$, Sentiment$+$). \textbf{(a)} Points colored by bias condition: baseline activations form a tight cluster, while most biased activations are displaced to a distant region regardless of polarity. \textbf{(b)} Points colored by assigned score. \textbf{(c)} Points colored by source dataset. Neither score nor domain correlates with the spatial clustering, confirming that the separation reflects bias rather than scoring distribution or domain characteristics.}
-\label{fig:activation_mds_combined}
-\end{figure*}
+The layer-25 fair-region projection (\Cref{fig:activation_mds_combined}) appears in the main text; this appendix gathers additional projections that support the geometric claims of \Cref{subsec:geometry}.
 
 \subsection{Activation MDS Across Layers}
 
@@ -1085,17 +1085,6 @@ Defense results mirror the attack findings in structure: activation-based defens
 \includegraphics[width=\textwidth]{images/activation_mds_layers_combined.pdf}
 \caption{MDS projection of final-token activations at layers 5, 15, and 25 of \textsc{Llama-3.1-8B} for $\mathcal{D}_{\text{base}}$ and $\mathcal{D}_{\text{neg}}$. The clustering pattern---tight baseline region with displaced biased activations---is consistent across layers.}
 \label{fig:activation_mds_layers}
-\end{figure*}
-
-\subsection{Cross-Polarity Geometric Separation}
-
-\Cref{fig:mds_bias_vectors} presents MDS projections of $\Delta \vec{h}_l$ for two contrasting bias types---Refinement (positive) and Diversity (negative)---at layers 5, 15, and 25. The two populations are weakly distinguished at layer 5, more clearly separated at layer 15, and fully distinct at layer 25, confirming that different bias types induce type-specific geometric signatures that sharpen with depth.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{images/effective_bias_vectors_ref_div_llama.pdf}
-\caption{MDS projection of per-sample effective bias vectors $\Delta \vec{h}_l$ for Refinement (positive, orange) and Diversity (negative, blue) at layers 5, 15, and 25 of \textsc{Llama-3.1-8B}. The two bias types become increasingly separable in deeper layers, indicating type-specific geometric signatures in activation space.}
-\label{fig:mds_bias_vectors}
 \end{figure*}
 
 \subsection{Same-Polarity Geometric Separation}
