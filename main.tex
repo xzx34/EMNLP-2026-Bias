@@ -93,7 +93,7 @@
 \maketitle
 
 \begin{abstract}
-Large language models used as automatic judges are known to be sensitive to surface cues that have nothing to do with answer quality---authorship hints, verbosity, declared peer consensus, emotional tone---yet the \emph{mechanism} by which such bias arises inside the judge remains unclear. We analyze LLM-as-a-judge scoring bias through the lens of activation geometry. Using tightly controlled triples of baseline, positively perturbed, and negatively perturbed answers across seven bias types, nine benchmarks, and seven judges, we first document a highly structured empirical landscape: negative perturbations induce substantial score degradation while positive ones are nearly inert, and the magnitude varies dramatically by bias type and input domain. At the representation level, baseline activations occupy a tight \emph{fair region}, while biased inputs are systematically displaced along a low-dimensional, type-specific bias direction that sharpens with depth and is recovered consistently by independent estimators. Bidirectional activation steering along this direction reproduces biased scoring (attack) and recovers fair scoring on biased inputs (defense), Pareto-dominating text-level interventions in Wasserstein shift and ordinal faithfulness---strong causal evidence that the direction carries the bias mechanistically. The same geometry supports a lightweight detector that predicts unfair judgments on unseen domains substantially better than a text-based baseline. Together, these results unify mechanism, intervention, and detection within a single activation-geometric framework for LLM judges.
+LLM judges are sensitive to surface cues unrelated to answer quality---authorship hints, verbosity, peer-consensus claims, tone---but the internal mechanism behind this bias is unclear. We study it through the activation geometry of seven judges across seven bias types and nine benchmarks. Behaviorally, negative perturbations cause large score drops while positive ones are nearly inert, with magnitudes varying widely by type and domain. In hidden space, baseline activations occupy a tight \emph{fair region} and biased inputs are displaced along a low-dimensional, type-specific direction that sharpens with depth and is recovered by independent estimators. Bidirectional activation steering along this direction reproduces biased scoring (attack) and restores fair scoring on biased inputs (defense), Pareto-dominating text-level interventions on both Wasserstein shift and ordinal faithfulness. The same features power a lightweight detector that beats text-based baselines on unseen domains.
 \end{abstract}
 
 % ══════════════════════════════════════════════════════════════
@@ -112,13 +112,7 @@ Our behavioral study finds three consistent patterns. Negative perturbations pro
 
 At the representation level, baseline activations occupy a tight \emph{fair region} in hidden space, while biased inputs are systematically displaced along a bias-specific direction that separates different bias types into distinct clusters. The direction becomes more concentrated and more agreed upon by independent estimators (Fisher's LDA, linear classifiers, PCA) as depth grows. It is also \emph{causally} implicated: steering a clean activation along it reproduces biased scoring (attack) and steering in the opposite direction recovers baseline scores on biased inputs (defense), both with a two-stage search that Pareto-dominates text-level interventions in Wasserstein shift and ordinal faithfulness. The same geometry supports a lightweight bias detector that, trained on six benchmarks and evaluated on three unseen ones, substantially outperforms text-based detectors in predicting unfair judgments.
 
-\paragraph{Contributions.}
-\begin{itemize}[leftmargin=1.2em, nosep]
-\item A large-scale empirical characterization of LLM-as-a-judge scoring bias across $7$ bias types, $9$ benchmarks, and $7$ judges, revealing systematic asymmetry, type heterogeneity, and domain interaction (\Cref{subsec:landscape}).
-\item An activation-geometric account of scoring bias: a fair region and a low-dimensional bias direction that emerges with depth and separates bias types (\Cref{subsec:geometry}).
-\item A two-stage activation-steering procedure that provides symmetric causal control---Pareto-dominant attacks and defenses that together establish $\vec{v}_{\text{bias}}$ as the mechanistic carrier of bias (\Cref{subsec:causal}).
-\item An activation-feature bias detector that outperforms text-based baselines, especially on unfairness prediction for unseen domains (\Cref{subsec:detection_brief}).
-\end{itemize}
+In summary, our contributions are: 1)~a large-scale empirical characterization of LLM-as-a-judge scoring bias across 7 bias types, 9 benchmarks, and 7 judges, surfacing systematic asymmetry, type heterogeneity, and domain interaction (\Cref{subsec:landscape}); 2)~an activation-geometric account of scoring bias, with a fair region and a low-dimensional bias direction that emerges with depth and separates bias types (\Cref{subsec:geometry}); 3)~a two-stage activation-steering procedure with symmetric causal control, yielding Pareto-dominant attacks and defenses that pin $\vec{v}_{\text{bias}}$ as the mechanistic carrier (\Cref{subsec:causal}); and 4)~an activation-feature detector that outperforms text-based baselines on unseen domains (\Cref{subsec:detection_brief}).
 
 
 % ══════════════════════════════════════════════════════════════
@@ -223,56 +217,7 @@ The experiments in this section test three claims in sequence. First, that scori
 \label{subsec:setup_brief}
 
 \paragraph{A taxonomy of scoring bias grounded in prior work.}
-Our seven bias types are not introduced ad hoc; each is distilled from a distinct line of prior work on LLM-as-a-judge failure modes, and \Cref{tab:bias_construction} makes the provenance explicit alongside the operational transformation we use to instantiate each type. \citet{ye2024justice} catalogue a large family of surface biases---including emotional tone, metacognitive claims about revision, and social-identity cues---which directly motivate our \emph{Sentiment}, \emph{Refinement}, and \emph{Diversity} types. \citet{koo2024benchmarking} show that LLM evaluators inherit classical cognitive heuristics from social psychology, with bandwagon (majority-opinion) and authority effects among the most robust; these become our \emph{Bandwagon} and \emph{Authority} types. Self-preference and source-identity effects \citep{panickssery2024llm,zheng2023judging,wang2023large} are captured by \emph{Prestige}, and the long-documented length-favoring tendency \citep{saito2023verbosity,dubois2024length} by \emph{Verbosity}. Consolidating these threads into a single controlled suite lets us compare cognitive, stylistic, social, and source-attribution biases on the same footing---a prerequisite for the cross-bias geometry analyses in \Cref{subsec:geometry}. Every transformation modifies only surface framing and preserves the factual content and logical structure of the original answer, so that any resulting score shift is attributable to the bias attribute rather than a quality change; a human evaluation (\Cref{app:human_eval}) confirms that the two content-modifying types (Verbosity, Sentiment) do not degrade answer quality.
-
-\begin{table*}[t]
-    \caption{The seven bias types studied in this paper, their provenance in prior work on LLM-as-a-judge, and the operational transformations we apply to construct positively and negatively perturbed variants. Each transformation modifies only surface framing while preserving the factual content and logical structure of the original answer.}
-    \label{tab:bias_construction}
-    \scriptsize
-    \renewcommand{\arraystretch}{1.5}
-    \rowcolors{2}{gray!8}{white}
-    \centering
-    \begin{tabular}{p{1.8cm} p{3.3cm} p{4.3cm} p{4.3cm}}
-        \toprule
-        \textbf{Bias Type (source)} & \textbf{Description} & \textbf{Positive Construction} & \textbf{Negative Construction} \\
-        \midrule
-        \faStar\ \textbf{Prestige} \newline \citep{panickssery2024llm,zheng2023judging}
-        & Whether scoring is influenced by perceived source reputation or model provenance.
-        & Prepend a source attribution suggesting a high-capability origin (\eg, prefixing with \texttt{``GPT-4:''}).
-        & Prepend a source attribution suggesting an outdated or less capable origin (\eg, prefixing with \texttt{``GPT-2:''}). \\
-
-        \faAlignLeft\ \textbf{Verbosity} \newline \citep{saito2023verbosity,dubois2024length}
-        & Whether the judge systematically favors more elaborate or more concise responses, independent of content.
-        & Instruct an LLM to add a small number of explanatory or transitional phrases, slightly increasing length without altering meaning.
-        & Instruct an LLM to perform minor trimming by removing non-essential words, making the expression more direct without removing factual content. \\
-
-        \faUsers\ \textbf{Bandwagon} \newline \citep{koo2024benchmarking}
-        & Whether scoring is affected by signals of social consensus or peer opinion.
-        & Append a contextual note indicating that a majority of prior reviewers rated the response favorably (\eg, ``92\% of reviewers found this helpful'').
-        & Append a contextual note indicating that a majority of prior reviewers expressed dissatisfaction (\eg, ``87\% of reviewers found this unhelpful''). \\
-
-        \faFileSignature\ \textbf{Authority} \newline \citep{koo2024benchmarking,chen2024humans}
-        & Whether the judge is influenced by markers of academic credibility or the absence thereof.
-        & Instruct an LLM to insert a plausible, domain-appropriate academic-style citation and reference into the text.
-        & Instruct an LLM to insert \texttt{[citation needed]} markers after key claims and append a note questioning the evidentiary basis. \\
-
-        \faGrinSquintTears[regular]\ \textbf{Sentiment} \newline \citep{ye2024justice}
-        & Whether scoring is swayed by the emotional tone or objectivity of the writing style.
-        & Instruct an LLM to enhance the text with a small number of objective, neutral, and scholarly terms.
-        & Instruct an LLM to introduce a small number of subjective and emotionally charged expressions. \\
-
-        \faPenNib\ \textbf{Refinement} \newline \citep{ye2024justice}
-        & Whether the judge is influenced by explicit metacognitive claims about the answer's quality or review status.
-        & Append a statement indicating the response has undergone careful revision (\eg, ``This response has been carefully revised and professionally refined'').
-        & Append a statement indicating the response is unprocessed output (\eg, ``This is raw AI output that has not been reviewed by any human''). \\
-
-        \faTransgender*\ \textbf{Diversity} \newline \citep{ye2024justice,li2024split}
-        & Whether the judge exhibits differential treatment based on the stated social identity of the author.
-        & Append an attribution noting the author belongs to a positively perceived social group (\eg, ``provided by an LGBTQ+ advocate'').
-        & Append an attribution noting the author belongs to a negatively perceived social group (\eg, ``provided by an extremist''). \\
-        \bottomrule
-    \end{tabular}
-\end{table*}
+Our seven bias types span source attribution (Prestige), length (Verbosity), social proof (Bandwagon), credibility (Authority), tone (Sentiment), metacognitive claims (Refinement), and social identity (Diversity). Each is distilled from a distinct line of prior work on LLM-as-a-judge failure modes (\Cref{app:related_bias}). \Cref{tab:bias_construction} in \Cref{app:bias_design} gives the operational transformation we apply for each type and polarity. Every transformation modifies only surface framing and preserves the factual content and logical structure of the original answer, so that any resulting score shift is attributable to the bias attribute rather than a quality change; a human evaluation (\Cref{app:human_eval}) confirms that the two content-modifying types (Verbosity, Sentiment) do not degrade answer quality.
 
 \paragraph{Data, judges, and protocol.}
 We instantiate the methodology on 4{,}500 questions sampled evenly from nine diverse benchmarks---GSM8K, MMLU, TruthfulQA, CommonsenseQA, PubMedQA, GPQA, ARC-Challenge, SocialMaze, and BBQ---covering mathematical reasoning, factual knowledge, commonsense inference, biomedical science, social cognition, and fairness-sensitive domains. Baseline answers are produced by a heterogeneous pool of six high-capability models; applying both polarities of each of the seven bias types yields $4{,}500 \times 7 = 31{,}500$ positively and $31{,}500$ negatively perturbed samples. We evaluate seven LLM judges spanning proprietary and open-source families: \textsc{GPT-4.1}, \textsc{GPT-4o-Mini}, \textsc{Llama-3.1-8B}, \textsc{Llama-3.3-70B}, \textsc{Qwen3-14B}, \textsc{Gemma-3-12B}, and \textsc{Deepseek-V3} \citep{deepseekai2025deepseekv3technicalreport}. Activation-level analyses focus on the three open-source mid-scale models for which we hold full white-box access, with \textsc{Llama-3.1-8B} as the primary judge in all main-text figures and tables; cross-model replications spanning all seven judges are in \Cref{app:model_replication}. Scoring prompts vary along two orthogonal axes---Chain-of-Thought and Strict grading---yielding four configurations; after confirming findings hold across all four (\Cref{subsec:asymmetry}), we adopt the \emph{strict, non-CoT} setting as the default because it provides sufficient headroom for both positive and negative effects. Data is partitioned into training (45\%), development (15\%), and test (40\%) splits using a nested design: training and development draw from six benchmarks, while the test split spans all nine, letting it simultaneously measure generalization to unseen questions and to entirely unseen domains. Full dataset construction and implementation details are in \Cref{app:setup,app:implementation}.
@@ -285,143 +230,46 @@ Before examining internal representations, we first establish the empirical real
 
 \paragraph{Asymmetric response to perturbations.}
 \phantomsection\label{subsec:asymmetry}
-We scored all 4{,}500 baseline, 31{,}500 positively perturbed, and 31{,}500 negatively perturbed samples across our judge models and prompt configurations. The results reveal a striking and consistent asymmetry: \emph{negative perturbations induce substantial score degradation, while positive perturbations have negligible effect}. \Cref{tab:asymmetric_scoring} summarizes the results for \textsc{GPT-4.1} across all four prompt configurations. Negative perturbations consistently produce large, statistically significant score drops (Cohen's $d \in [-0.58, -0.35]$, all $p < 10^{-3}$), whereas positive perturbations yield negligible shifts (Cohen's $d \approx 0$, no significant $p$-values). This asymmetry persists regardless of whether CoT or stricter scoring criteria are used, ruling out prompting artifacts. Notably, the strict-scoring configurations---which lower the baseline mean from ${\sim}8.5$ to ${\sim}5.5$---eliminate the possibility that the absence of positive inflation is merely a ceiling effect. Results for all seven judge models under the default configuration are in \Cref{app:asymmetry_replication}; the pattern is consistent.
+We scored all 4{,}500 baseline, 31{,}500 positively perturbed, and 31{,}500 negatively perturbed samples across our judge models and prompt configurations. The results reveal a striking and consistent asymmetry: \emph{negative perturbations induce substantial score degradation, while positive perturbations have negligible effect}. For \textsc{GPT-4.1} across all four prompt configurations (\Cref{tab:asymmetric_scoring}), negative perturbations consistently produce large, statistically significant score drops (Cohen's $d \in [-0.58, -0.35]$, all $p < 10^{-3}$), whereas positive perturbations yield negligible shifts (Cohen's $d \approx 0$). This persists whether CoT or stricter scoring criteria are used, ruling out prompting artifacts; the strict configurations lower the baseline mean from ${\sim}8.5$ to ${\sim}5.5$, eliminating the possibility that the absence of positive inflation is merely a ceiling effect. \Cref{fig:score_dist} shows the score distributions from \textsc{Llama-3.1-8B}: baseline mean 5.84, positive 5.91 ($d=0.048$, practically negligible), negative 5.12 ($d=-0.505$, $p<10^{-189}$). LLM judges are substantially more vulnerable to negative cues than to positive flattery---a pronounced negativity bias that shapes our subsequent analysis. The pattern replicates across all seven judges (\Cref{app:asymmetry_replication}).
 
-\begin{table*}[t]
+\begin{figure}[t]
 \centering
-\caption{Asymmetric scoring response to positive and negative perturbations across different prompt configurations for \textbf{GPT-4.1}. We report the baseline mean score ($\bar{s}_{\text{base}}$), mean score difference ($\Delta \bar{s}$), Cohen's d for effect size, t-test p-value, and 1-Wasserstein distance ($W_1$). Negative perturbations consistently induce a substantial penalty, while positive perturbations have a negligible effect. This asymmetry holds regardless of whether CoT or stricter scoring criteria are used.}
-\label{tab:asymmetric_scoring}
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{@{\hskip 2pt}c@{\hskip 2pt}c@{\hskip 2pt}c@{\hskip 4pt}cccccccc@{}}
-\toprule
-\multicolumn{2}{c}{\textbf{Config.}} & \multirow{2}{*}{\textbf{$\bar{s}_{\text{base}}$}} & \multicolumn{4}{c}{\cellcolor{blue!10} \faThumbsUp[regular] \textbf{Positive Bias} ($\mathcal{D}_{\text{pos}}$ vs. $\mathcal{D}_{\text{base}}$)} & \multicolumn{4}{c}{\cellcolor{red!10} \faThumbsDown[regular] \textbf{Negative Bias} ($\mathcal{D}_{\text{neg}}$ vs. $\mathcal{D}_{\text{base}}$)} \\
-\cmidrule(lr){4-7} \cmidrule(lr){8-11}
-\textbf{CoT} & \textbf{Strict} & & $\Delta \bar{s}$ & Cohen's d & p-value & $W_1$ Dist. & $\Delta \bar{s}$ & Cohen's d & p-value & $W_1$ Dist. \\
-\midrule
-\rowcolor{gray!5}
-\faCheck & \faTimes & 8.71 & -0.055 & -0.043 & 0.669 & 0.085 & -0.855 & -0.582 & $< 10^{-8}$ & 0.855 \\
-\faTimes & \faTimes & 8.46 & -0.010 & -0.008 & 0.940 & 0.080 & -0.745 & -0.486 & $< 10^{-5}$ & 0.755 \\
-\rowcolor{gray!5}
-\faCheck & \faCheck & 5.72 & +0.025 & +0.032 & 0.750 & 0.095 & -0.350 & -0.382 & $< 10^{-3}$ & 0.370 \\
-\faTimes & \faCheck & 5.27 & +0.020 & +0.021 & 0.838 & 0.060 & -0.360 & -0.346 & $< 10^{-3}$ & 0.370 \\
-\bottomrule
-\end{tabular}
-\end{table*}
-
-\Cref{fig:score_dist} shows the score distributions from \textsc{Llama-3.1-8B} under the default setting. The baseline mean is 5.84; positive perturbations yield a trivial increase to 5.91 (Cohen's $d = 0.048$, $p = .003$)---statistically significant due to sample size but practically negligible. In contrast, negative perturbations shift the mean down to 5.12 (Cohen's $d = -0.505$, $p < 10^{-189}$), reflecting a genuine distributional shift. LLM judges are substantially more vulnerable to negative cues than to positive flattery. This pronounced negativity bias is itself a central finding that shapes our subsequent analysis.
-
-\begin{figure}[h!]
-\centering
-\includegraphics[width=\textwidth]{images/score_distribution_Llama-3.1-8B.pdf}
-\caption{Score distributions from \textsc{Llama-3.1-8B} (strict, non-CoT). The positive perturbation distribution ($\mathcal{D}_{\text{pos}}$, center) nearly overlaps with the baseline ($\mathcal{D}_{\text{base}}$, left), whereas the negative perturbation distribution ($\mathcal{D}_{\text{neg}}$, right) exhibits a substantial leftward shift.}
+\includegraphics[width=\columnwidth]{images/score_distribution_Llama-3.1-8B.pdf}
+\caption{Score distributions from \textsc{Llama-3.1-8B} (strict, non-CoT). $\mathcal{D}_{\text{pos}}$ nearly overlaps with $\mathcal{D}_{\text{base}}$, whereas $\mathcal{D}_{\text{neg}}$ exhibits a substantial leftward shift.}
 \label{fig:score_dist}
 \end{figure}
 
 
-\paragraph{Heterogeneity across bias types.}
-Not all bias types are equally potent. \Cref{tab:bias_type_impact} breaks down the per-type impact for \textsc{Llama-3.1-8B}. On the negative side, biases targeting social-cognitive heuristics are far more effective: Bandwagon (suggesting peer disapproval) causes a 1.56-point drop, followed by Diversity and Authority. In contrast, Sentiment---merely introducing emotional language---has almost no effect. On the positive side, only Refinement (claiming the answer was ``professionally revised'') produces a notable boost; most other positive perturbations are ineffective. This asymmetry at the type level reveals a clear vulnerability hierarchy: LLM judges are particularly susceptible to social proof and credibility cues, and far more so in the negative direction.
-
-\begin{wraptable}{r}{0.68\textwidth}
-\vspace{-1em}
-\centering
-\caption{Impact of individual bias attributes on the mean score from \textsc{Llama-3.1-8B}. The baseline mean score is 5.84.}
-\label{tab:bias_type_impact}
-\begin{tabular}{l cc l cc}
-\toprule
-\multicolumn{3}{c}{\cellcolor{blue!10}\faThumbsUp[regular] \textbf{Positive Bias Attributes}} & \multicolumn{3}{c}{\cellcolor{red!10}\faThumbsDown[regular] \textbf{Negative Bias Attributes}} \\
-\cmidrule(r){1-3} \cmidrule(l){4-6}
-\textbf{Bias Type} & \textbf{Mean} & \textbf{Effect} & \textbf{Bias Type} & \textbf{Mean} & \textbf{Effect} \\
-\midrule
-Refinement & 6.61 & \textcolor{teal}{$\uparrow\uparrow\uparrow$} & Bandwagon & 4.28 & \textcolor{red}{$\downarrow\downarrow\downarrow$} \\
-Sentiment & 6.01 & \textcolor{teal}{$\uparrow$} & Diversity & 4.90 & \textcolor{red}{$\downarrow\downarrow$} \\
-Verbosity & 6.00 & \textcolor{teal}{$\uparrow$} & Authority & 5.05 & \textcolor{red}{$\downarrow\downarrow$} \\
-Authority & 5.86 & \textcolor{gray}{$\sim$} & Refinement & 5.27 & \textcolor{red}{$\downarrow$} \\
-Prestige & 5.85 & \textcolor{gray}{$\sim$} & Verbosity & 5.24 & \textcolor{red}{$\downarrow$} \\
-Diversity & 5.65 & \textcolor{orange}{$\downarrow$} & Prestige & 5.46 & \textcolor{orange}{$\downarrow$} \\
-Bandwagon & 5.38 & \textcolor{orange}{$\downarrow\downarrow$} & Sentiment & 5.77 & \textcolor{gray}{$\sim$} \\
-\bottomrule
-\end{tabular}
-\vspace{-1em}
-\end{wraptable}
-
-An intriguing observation is that the positive and negative rankings are not mirror images: Bandwagon is the strongest negative bias but one of the weakest---even counterproductive---positive biases, while Refinement dominates on the positive side but ranks only fourth on the negative side. This suggests that positive and negative biases may engage fundamentally different internal mechanisms, a hypothesis we investigate through the activation analysis of \Cref{subsec:geometry}.
-
-
-\paragraph{Domain-dependent vulnerability profiles.}
-The interaction between bias type and question domain reveals further structure. \Cref{fig:bias_heatmap} presents heatmaps of the mean score change induced by each bias type on each source dataset, separately for positive biases (left) and negative biases (right).
-
-\begin{figure}[h!]
-\centering
-\includegraphics[width=\textwidth]{images/bias_heatmap.pdf}
-\caption{Mean score change by bias type and source dataset for \textsc{Llama-3.1-8B}. \textbf{(a)} Positive biases. \textbf{(b)} Negative biases. CSQA denotes CommonsenseQA. The interaction structure shows that vulnerability is not uniform---certain domains are differentially susceptible to specific bias types.}
-\label{fig:bias_heatmap}
-\end{figure}
-
-Three patterns stand out. First, Bandwagon bias is universally potent in the negative direction across all domains, with particularly devastating effects on reasoning-heavy benchmarks (CommonsenseQA: $-2.46$, ARC-Challenge: $-2.13$). Second, Diversity bias shows domain sensitivity: its negative effect is strongest on socially relevant datasets such as SocialMaze and BBQ, consistent with these domains engaging social reasoning pathways. Third, Authority bias disproportionately affects knowledge-intensive domains (PubMedQA: $-1.25$, MMLU: $-0.98$), where citation signals carry greater weight. On the positive side, Refinement bias shows a remarkably consistent boosting effect across all domains, while other positive biases are domain-dependent and generally weaker. These domain-dependent profiles suggest that bias is not a monolithic phenomenon but reflects the interaction between surface cues and domain-specific processing, motivating the activation-level investigation that follows.
+\paragraph{Type heterogeneity and domain interaction.}
+Bias types are far from interchangeable. Bandwagon$-$ produces the largest negative effect ($-1.56$, baseline 5.84), followed by Diversity$-$ and Authority$-$; Sentiment$-$ has almost no effect. On the positive side only Refinement$+$ produces a clear boost; most other positive perturbations are ineffective. Crucially, the positive and negative rankings are \emph{not} mirror images---Bandwagon is the strongest negative bias but among the weakest positive ones, while Refinement dominates the positive side but ranks only fourth negatively---suggesting that the two polarities engage different internal mechanisms, a hypothesis we test in \Cref{subsec:geometry}. The type effect also interacts with semantic domain: Bandwagon$-$ is especially devastating on reasoning benchmarks (CommonsenseQA: $-2.46$, ARC: $-2.13$), Diversity$-$ peaks on socially relevant data (SocialMaze, BBQ), and Authority$-$ on knowledge-intensive ones (PubMedQA: $-1.25$, MMLU: $-0.98$). Per-type and per-domain breakdowns are in \Cref{app:landscape_details} (\Cref{tab:bias_type_impact,fig:bias_heatmap}).
 
 
 \subsection{Activation Geometry}
 \label{subsec:geometry}
 
-Having established the behavioral landscape, we now examine the judge's internal representations. Our goal is to characterize how biased inputs displace activations in hidden space, whether different bias types leave distinct geometric signatures, and how these signals evolve across the layer stack. Unless otherwise indicated, results below are for \textsc{Llama-3.1-8B}, with replications on \textsc{Qwen3-14B} and \textsc{Gemma-3-12B} in \Cref{app:geometric_replication}.
+Having established the behavioral landscape, we now examine the judge's internal representations. We ask three questions: how does bias displace activations in hidden space, do different bias types leave distinct geometric signatures, and how does this signal evolve with depth? Unless otherwise stated, results are for \textsc{Llama-3.1-8B}; replications on \textsc{Qwen3-14B} and \textsc{Gemma-3-12B} are in \Cref{app:geometric_replication}.
 
-\subsubsection{Fair Region Discovery}
-\label{subsec:fair_region}
+\paragraph{A fair region in hidden space.}
+\phantomsection\label{subsec:fair_region}
+MDS projections of final-token activations at layer 25 (\Cref{fig:activation_mds_combined}, \Cref{app:visualizations}) reveal that baseline activations form a tight cluster while the vast majority of biased activations---regardless of polarity---sit at a substantial distance from this region. Re-coloring the same projection by assigned score and by source dataset shows no correlation with the observed clusters, so the separation reflects bias rather than scoring distribution or domain. PCA yields the same picture, and the pattern holds at earlier layers. Unbiased activations therefore occupy a stable \emph{fair region} from which biased inputs are systematically displaced.
 
-We begin by visualizing the absolute positions of activations via Multidimensional Scaling (MDS). \Cref{fig:activation_mds_combined}a shows an MDS projection of final-token activations at layer 25 of \textsc{Llama-3.1-8B}, where each point is the hidden state $\vec{h}_{25}(x)$ for inputs from $\mathcal{D}_{\text{base}}$ and four representative bias types spanning both polarities (Bandwagon$-$, Diversity$-$, Refinement$+$, Sentiment$+$). A striking pattern emerges: baseline activations form a distinct, tight cluster, while the vast majority of biased activations---regardless of polarity---sit at a substantial distance from this baseline region. A small subset of biased activations remain anomalously close to the baseline cluster, clearly separated from the main biased mass; the same pattern holds at earlier layers (\Cref{app:visualizations}).
+\paragraph{Type-specific directions of displacement.}
+\phantomsection\label{subsec:directional_separation}
+The fair region tells us \emph{that} biased activations are displaced; the effective bias vectors $\Delta \vec{h}_l(x)$ tell us \emph{how}. MDS projections of $\Delta \vec{h}_l$ for cross-polarity (Refinement$+$ vs.\ Diversity$-$, \Cref{fig:mds_bias_vectors}) and same-polarity (Bandwagon$-$ vs.\ Diversity$-$, \Cref{app:visualizations}) pairs show the same progressive separation: weak at layer 5, clear at layer 15, fully distinct at layer 25. Each bias type carves out its own geometric trajectory, and this is consistent across architectures (\Cref{app:geometric_replication}). PCA on the raw activations shows $\mathcal{H}_{\text{base}}$, $\mathcal{H}_{\text{pos}}$, $\mathcal{H}_{\text{neg}}$ intermingled along the principal components (capturing 80\%\,+ of variance), so the bias-induced shift is \emph{orthogonal to the dominant content axes}---a subtle, non-principal direction rather than a generic ``low-quality'' signal.
 
-This clustering suggests that unbiased activations occupy a stable, well-defined region---a \emph{fair zone} from which biased inputs are systematically displaced. To verify that the spatial separation is not an artifact of other variables, we re-color the same MDS space by assigned score (\Cref{fig:activation_mds_combined}b) and by source dataset (\Cref{fig:activation_mds_combined}c). Neither score values nor dataset origins correlate with the observed clusters, confirming that the separation reflects the effect of bias on the model's internal state rather than a confound of scoring distribution or domain.
-
-\begin{figure}[h!]
-\centering
-\includegraphics[width=\textwidth]{images/activation_mds_layer25_combined.pdf}
-\caption{MDS projection of final-token activations at layer 25 of \textsc{Llama-3.1-8B} for $\mathcal{D}_{\text{base}}$ and four bias types (Bandwagon$-$, Diversity$-$, Refinement$+$, Sentiment$+$). \textbf{(a)} Points colored by bias condition: baseline activations form a tight cluster, while most biased activations are displaced to a distant region regardless of polarity. \textbf{(b)} Points colored by assigned score. \textbf{(c)} Points colored by source dataset. Neither score nor domain correlates with the spatial clustering, confirming that the separation reflects bias rather than scoring distribution or domain characteristics.}
-\label{fig:activation_mds_combined}
-\end{figure}
-
-This phenomenon is not unique to MDS. PCA-based dimensionality reduction yields similar patterns, further validating that biased activations are displaced from a stable, unbiased region (\Cref{app:visualizations}). Together these observations establish a clear geometric structure: baseline activations occupy a coherent fair region from which biased inputs are displaced, motivating a closer examination of the \emph{directional} properties of that displacement.
-
-
-\subsubsection{Directional Separation of Bias Types}
-\label{subsec:directional_separation}
-
-The fair-region analysis reveals \emph{that} biased activations are displaced, but does not distinguish \emph{how} different bias types displace them. We now turn to the effective bias vectors $\Delta \vec{h}_l(x)$ and ask whether different bias types produce geometrically distinct directions of displacement.
-
-\Cref{fig:mds_bias_vectors} presents MDS projections of $\Delta \vec{h}_l$ for two contrasting bias types---Refinement (positive) and Diversity (negative)---at layers 5, 15, and 25 of \textsc{Llama-3.1-8B}. At layer 5, some distinction between the two populations emerges but remains weak. By layer 15 the separation is fairly clear, and by layer 25 the two types occupy fully distinct regions of the MDS space. This progressive separation demonstrates that different bias types---even across polarities---induce \emph{type-specific geometric signatures} in the model's internal representations, and that these signatures become increasingly distinguishable at deeper layers.
-
-\begin{figure}[h!]
-\centering
-\includegraphics[width=\textwidth]{images/effective_bias_vectors_ref_div_llama.pdf}
-\caption{MDS projection of per-sample effective bias vectors $\Delta \vec{h}_l$ for Refinement (positive, orange) and Diversity (negative, blue) at layers 5, 15, and 25 of \textsc{Llama-3.1-8B}. The two bias types become increasingly separable in deeper layers, indicating type-specific geometric signatures in activation space.}
-\label{fig:mds_bias_vectors}
-\end{figure}
-
-This geometric distinction is not limited to cross-polarity comparisons. MDS visualizations of two \emph{same-polarity} negative bias types (Bandwagon vs.\ Diversity) reveal the same progressive separation (\Cref{app:visualizations}), confirming that each bias type carves out its own geometric trajectory even within a single polarity. Consistent patterns are observed across architectures: \textsc{Gemma-3-12B} and \textsc{Qwen3-14B} exhibit analogous type-specific separation (\Cref{app:geometric_replication}).
-
-Complementary analyses further characterize the structure of the bias-induced shift. PCA projections of the raw activations from $\mathcal{H}_{\text{base}}$, $\mathcal{H}_{\text{pos}}$, and $\mathcal{H}_{\text{neg}}$ show all three sets thoroughly intermingled along the principal components, which capture over 80\% of the variance (\Cref{app:visualizations}). This indicates that the bias-induced shift is \emph{orthogonal to the dominant content axes}: it is a subtle, non-principal direction specific to bias rather than a general ``low-quality'' signal.
-
-
-\subsubsection{Layer-wise Characterization of the Bias Direction}
-\label{subsec:layer_analysis}
-
-The preceding geometric findings raise a quantitative question: how does the bias signal evolve across depth? We track four complementary scalars at each layer $l$ on the pooled negative-bias samples of \textsc{Llama-3.1-8B}:
-\begin{itemize}[leftmargin=1.2em, nosep]
-    \item \textbf{Biased core fraction} $\rho_{\text{core}}^{(l)} = |\mathcal{D}_{\text{far}}^{(l)}|/|\mathcal{D}_{\text{eff}}^{-}|$: the share of effective negative samples whose Mahalanobis distance from $\mathcal{M}_{\text{fair}}$ exceeds the 90th percentile of the baseline distance distribution.
-    \item \textbf{LDA separability} $\text{Sep}_{\text{LDA}}^{(l)}$: leave-one-out accuracy of $\vec{v}_{\text{LDA}}^{(l)}$ in discriminating $\mathcal{H}_{\text{base}}^{(l)}$ from $\mathcal{H}_{\text{far}}^{(l)}$.
-    \item \textbf{Classifier AUC} $\text{AUC}_{\text{CLS}}^{(l)}$: held-out AUC of the linear classifier trained to separate $\mathcal{H}_{\text{base}}^{(l)}$ from $\mathcal{H}_{\text{neg}}^{(l)}$ (the full, unfiltered negative set).
-    \item \textbf{Direction agreement} $\cos\angle(\vec{v}_{\text{LDA}}^{(l)}, \vec{v}_{\text{CLS}}^{(l)})$.
-\end{itemize}
-
-\Cref{tab:layerwise} reports these four quantities at six representative layers. Three patterns are clear. \emph{(i)} The biased core fraction and LDA separability rise monotonically with depth (32\%/0.71 at layer 5 to 87\%/0.95 at layer 31), confirming that the fair region and the bias-displaced region become progressively better separated in deeper representations. \emph{(ii)} The cosine similarity between $\vec{v}_{\text{LDA}}$ and $\vec{v}_{\text{CLS}}$ climbs from 0.52 to 0.94: two direction estimators with entirely different objectives (Fisher's ratio versus a margin loss) converge on the same axis in deeper layers, indicating that the bias is concentrated in a low-dimensional subspace that emerges gradually through the network. \emph{(iii)} In contrast, the classifier AUC peaks at intermediate layers ($l \approx 10$--$15$) and declines slightly thereafter. We read this as a surface-vs-semantic tradeoff: early-to-middle layers retain trivially separable lexical cues distinguishing $\mathcal{D}_{\text{base}}$ from $\mathcal{D}_{\text{neg}}$, while deeper layers reorganize the geometry around a cleaner semantic bias axis captured by $\vec{v}_{\text{LDA}}$ and the biased core---a more selective but less surface-driven signal.
+\paragraph{Depth sharpens the bias subspace.}
+\phantomsection\label{subsec:layer_analysis}
+To quantify how the bias signal evolves across depth, we track four scalars on the pooled negative-bias samples: the biased core fraction $\rho_{\text{core}}^{(l)}$ (share of effective negative samples whose Mahalanobis distance from $\mathcal{M}_{\text{fair}}$ exceeds the 90th percentile of the baseline distance distribution); LDA separability $\text{Sep}_{\text{LDA}}^{(l)}$ (leave-one-out accuracy of $\vec{v}_{\text{LDA}}^{(l)}$ on $\mathcal{H}_{\text{base}}$ vs.\ $\mathcal{H}_{\text{far}}$); raw classifier AUC; and the cosine agreement between the two direction estimators. \Cref{tab:layerwise} reports them at six layers. Three patterns: \emph{(i)} biased-core fraction and LDA separability rise monotonically (32\%/0.71 at layer 5 to 87\%/0.95 at layer 31); \emph{(ii)} two estimators with entirely different objectives---Fisher's ratio and a margin loss---converge on the same axis ($\cos$ from 0.52 to 0.94), indicating that the bias is concentrated in a low-dimensional subspace that emerges with depth; \emph{(iii)} raw classifier AUC peaks at intermediate layers, reflecting a tradeoff in which early-to-middle layers retain trivially separable lexical cues while deeper layers reorganize geometry around a cleaner semantic bias axis. An L2-norm analysis (\Cref{app:l2_norm}) confirms that biased and baseline activations have indistinguishable magnitudes at every layer ($p>0.1$): bias is encoded in \emph{direction}, not norm. This motivates intervention at mid-to-late layers and the use of unit-normalized vector estimators throughout.
 
 \begin{table}[h!]
 \centering
 \small
-\caption{Layer-wise characterization of the bias direction on \textsc{Llama-3.1-8B} (32 layers, indexed 0--31). All quantities are computed on the pooled effective negative samples $\mathcal{D}_{\text{eff}}^{-}$ against $\mathcal{D}_{\text{base}}$. The biased core fraction, LDA separability, and LDA/Classifier cosine agreement increase monotonically with depth; the raw-classifier AUC peaks in middle layers.}
+\setlength{\tabcolsep}{3pt}
+\caption{Layer-wise characterization of the bias direction on \textsc{Llama-3.1-8B} (32 layers). Biased core $\rho_{\text{core}}$, LDA separability, and the LDA/Classifier cosine agreement rise monotonically with depth; raw classifier AUC peaks in middle layers.}
 \label{tab:layerwise}
 \begin{tabular}{c cccc}
 \toprule
-\textbf{Layer $l$} & \textbf{Biased Core $\rho_{\text{core}}^{(l)}$} & \textbf{LDA Sep. $\text{Sep}_{\text{LDA}}^{(l)}$} & \textbf{Classifier AUC} & $\cos\angle(\vec{v}_{\text{LDA}}, \vec{v}_{\text{CLS}})$ \\
+$l$ & $\rho_{\text{core}}^{(l)}$ & $\text{Sep}_{\text{LDA}}^{(l)}$ & AUC$_{\text{CLS}}$ & $\cos(\vec{v}_{\text{LDA}}, \vec{v}_{\text{CLS}})$ \\
 \midrule
 \phantom{0}5 & 0.32 & 0.71 & 0.89 & 0.52 \\
 10 & 0.48 & 0.79 & \textbf{0.94} & 0.68 \\
@@ -433,11 +281,6 @@ The preceding geometric findings raise a quantitative question: how does the bia
 \end{tabular}
 \end{table}
 
-These observations directly inform the intervention experiments of the next subsection: the biased core gets cleaner and the bias subspace more agreed-upon in deeper layers, suggesting that intervention at mid-to-late layers should be most reliable. The $\vec{v}_{\text{LDA}}$--$\vec{v}_{\text{CLS}}$ convergence also foreshadows an empirical observation we exploit below: within each family, the three directional or three discriminative estimators agree strongly, allowing us to collapse six candidates to three representatives without loss of signal.
-
-\paragraph{Magnitude versus direction.}
-One could worry that the geometry above is conflated with a magnitude effect---that biased activations are simply ``larger'' than baseline ones. We rule this out directly. \Cref{fig:l2_norm} (\Cref{app:l2_norm}) plots the mean L2 norm $\|\vec{h}_l\|_2$ as a function of layer for $\mathcal{D}_{\text{base}}$ and $\mathcal{D}_{\text{neg}}$ on \textsc{Llama-3.1-8B}; the two curves track each other to within 3.5\% at every layer and a Welch's $t$-test fails to reject equality of means at $p>0.1$ everywhere. Bias is therefore encoded in the \emph{direction} of the activation displacement, not in its magnitude. This is why we unit-normalize all vector estimators before use, and why we define the biased core in terms of Mahalanobis distance rather than raw norm.
-
 
 \subsection{Causal Validation}
 \label{subsec:causal}
@@ -445,64 +288,36 @@ One could worry that the geometry above is conflated with a magnitude effect---t
 The correlational geometry above is consistent with $\vec{v}_{\text{bias}}$ being a mere byproduct of biased scoring rather than its mechanistic driver. To close this gap we run controlled activation-steering experiments (\Cref{subsec:causal_method}) in both directions---\emph{attack} (inject $\vec{v}_{\text{bias}}$ into a clean baseline activation) and \emph{defense} (subtract $\vec{v}_{\text{bias}}$ from a biased activation). Success in both directions would demonstrate that the bias is causally encoded along $\vec{v}_{\text{bias}}$, not merely correlated with it.
 
 \paragraph{Vector selection.}
-For each bias type we extract all six candidate vectors from the training set and compute pairwise cosine similarities on the layer-25 representations (full matrix in \Cref{tab:vector_cosine}). The three directional estimators agree tightly with $\cos \geq 0.93$, as do the three discriminative estimators with $\cos \geq 0.91$; cross-family agreement is lower ($\cos \in [0.55, 0.65]$), confirming that the two families capture genuinely distinct---but each internally coherent---notions of bias direction. We therefore retain three representatives spanning the spectrum: the \textbf{Geometric Median} (robust directional estimator), \textbf{PCA} (principal directional axis), and the \textbf{Classifier} vector (discriminative boundary).
+For each bias type we extract all six candidate vectors and compute pairwise layer-25 cosines (\Cref{tab:vector_cosine}). The three directional estimators agree at $\cos\!\geq\!0.93$ and the three discriminative ones at $\cos\!\geq\!0.91$; cross-family agreement is lower ($\cos\!\in\![0.55,0.65]$), so we retain one representative per family: \textbf{Geometric Median} (directional, robust), \textbf{PCA} (directional, principal axis), and \textbf{Classifier} (discriminative).
 
+\paragraph{Attack and defense.}
+We run activation steering in both directions on three representative negative bias types and benchmark against text-level baselines (apply the perturbation directly for attacks, rewrite to remove it for defenses). \Cref{tab:steering_summary} reports the results. \emph{Activation attacks} produce a strictly larger Wasserstein shift than text attacks while also preserving a higher Spearman correlation with the baseline ranking---on Bandwagon$-$, the PCA attack more than doubles the shift (3.43 vs.\ 1.66) while raising $\rho_S$ from 0.51 to 0.58. \emph{Activation defenses} reduce the Wasserstein distance between biased and baseline score distributions by 52--62\% across the three types, compared to 9--15\% for text-rewrite defenses. Output validity stays above 95\% throughout, so the binding constraint is ordinal consistency, not generation integrity. This symmetric controllability---the judge can be pushed toward \emph{or} pulled away from bias along the \emph{same} direction---is the strongest causal evidence that $\vec{v}_{\text{bias}}$ is the mechanistic carrier of bias, not merely correlated with it.
 
-\paragraph{Attacks.}
-\Cref{tab:attack_summary} reports the best activation attack for three representative negative bias types on the held-out test set of \textsc{Llama-3.1-8B}, benchmarked against a text-based attack that directly applies the corresponding perturbation to the input. In every case the activation attack \emph{Pareto-dominates}: a strictly larger Wasserstein shift $W_1$ while also preserving a higher Spearman correlation $\rho_S$ with the baseline ranking. On Bandwagon$-$, for instance, the PCA attack more than doubles the shift (3.43 vs.\ 1.66) while raising $\rho_S$ from 0.51 to 0.58. Output validity stays above 95\% throughout, confirming that the binding constraint in practice is ordinal consistency rather than generation integrity.
-
-\begin{table}[h!]
+\begin{table}[t]
 \centering
 \small
-\caption{Best-performing activation attack selected via \Cref{eq:alpha_obj} on the development set, evaluated on the test set of \textsc{Llama-3.1-8B}. Higher $W_1$ means stronger attack; higher $\rho_S$ means more ordinally faithful. Activation attacks Pareto-dominate text attacks on both axes across all three bias types. Full per-layer, per-method tables are in \Cref{app:attack_full}.}
-\label{tab:attack_summary}
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{l l c c c c c}
+\setlength{\tabcolsep}{3pt}
+\caption{Best activation steering for attack and defense on \textsc{Llama-3.1-8B}, test set. ``Atk-$W_1$'' is shift magnitude (higher = stronger attack); ``Def-$W_1\!\downarrow$'' is the fractional reduction in pre-defense Wasserstein distance (higher = better recovery); $\rho_S$ is Spearman rank correlation with baseline. Activation interventions Pareto-dominate text-level baselines on both tasks. Full per-layer, per-method tables in \Cref{app:attack_full,app:defense_full}.}
+\label{tab:steering_summary}
+\begin{tabular}{l l cccc}
 \toprule
-\textbf{Bias} & \textbf{Method} & $W_1 \uparrow$ & $\rho_S \uparrow$ & \textbf{Valid.}\,$\uparrow$ & \textbf{Layer} & $\alpha^{*}$ \\
+\textbf{Bias} & \textbf{Method} & \textbf{Atk-}$W_1$\,$\uparrow$ & $\rho_S$\,$\uparrow$ & \textbf{Def-}$W_1\!\downarrow$\,$\uparrow$ & $\rho_S$\,$\uparrow$ \\
 \midrule
-\multirow{2}{*}{Authority$-$} & Text Attack & 0.780 & 0.696 & 100\% & -- & -- \\
-                              & \textbf{Classifier} (ours) & \textbf{1.618} & \textbf{0.780} & 94.8\% & 30 & 62.36 \\
+\multirow{2}{*}{Auth.$-$} & Text & 0.78 & 0.70 & 0.11 & 0.74 \\
+& \textbf{Cls.} & \textbf{1.62} & \textbf{0.78} & \textbf{0.62} & \textbf{0.81} \\
 \midrule
-\multirow{2}{*}{Bandwagon$-$} & Text Attack & 1.664 & 0.514 & 100\% & -- & -- \\
-                              & \textbf{PCA} (ours) & \textbf{3.426} & \textbf{0.584} & 94.8\% & 31 & 75.75 \\
+\multirow{2}{*}{Bandw.$-$} & Text & 1.66 & 0.51 & 0.09 & 0.56 \\
+& \textbf{PCA} & \textbf{3.43} & \textbf{0.58} & \textbf{0.61} & \textbf{0.67} \\
 \midrule
-\multirow{2}{*}{Refinement$-$} & Text Attack & 0.594 & 0.757 & 100\% & -- & -- \\
-                               & \textbf{PCA} (ours) & \textbf{1.132} & \textbf{0.800} & 100\% & 31 & 35.53 \\
+\multirow{2}{*}{Refin.$-$} & Text & 0.59 & 0.76 & 0.15 & 0.77 \\
+& \textbf{PCA/Cls.}$^{\dagger}$ & \textbf{1.13} & \textbf{0.80} & \textbf{0.52} & \textbf{0.83} \\
 \bottomrule
 \end{tabular}
+\\[-0.2em]
+{\scriptsize $^{\dagger}$Attack: PCA; Defense: Classifier.}
 \end{table}
 
-Four additional patterns across the full sweep warrant note (all detailed in \Cref{app:attack_full}):
-\emph{(i) strength is highly heterogeneous}---optimal $\alpha^{*}$ varies by more than an order of magnitude across bias types and methods, so no single calibrated strength transfers;
-\emph{(ii) depth matters}---$\alpha^{*}$ generally grows with layer depth, with a characteristic drop at the final layer where interventions disrupt ordinal logic more aggressively;
-\emph{(iii) no single best estimator}---Classifier vectors typically yield the strongest push, Geometric Median vectors the most ordinally gentle, and PCA occasionally wins at deep layers, reinforcing our choice to retain one representative per family;
-\emph{(iv) validity is rarely binding}---the 95\% validity constraint is active in $<10\%$ of configurations, meaning Spearman consistency, not output corruption, is the binding factor.
-
-\paragraph{Defenses.}
-Symmetrically, applying $\vec{h}'_l = \vec{h}_l - \alpha\,\vec{v}_{\text{bias}}^{(l)}$ to inputs in $\mathcal{D}_{\text{eff}}^{-}$---steering biased activations back toward the fair region---should recover baseline scores if $\vec{v}_{\text{bias}}$ is the mechanistic carrier of bias. Using the same two-stage search with $s_{\text{target}}$ set to the unperturbed baseline score, the activation defense reduces the Wasserstein distance between biased and baseline score distributions by 52--62\% across the three bias types (\Cref{tab:defense_summary}), compared to 9--15\% for a text-based rewrite defense targeted at the same attributes. This symmetric controllability---the judge can be pushed toward \emph{or} pulled away from the bias along the same direction---is the strongest causal evidence that $\vec{v}_{\text{bias}}$ is not merely correlated with biased scoring but causally drives it.
-
-\begin{table}[h!]
-\centering
-\small
-\caption{Best-performing activation defense on \textsc{Llama-3.1-8B}, test set. ``$W_1$-red.'' is the fractional reduction in Wasserstein distance between the defended and baseline score distributions relative to the pre-defense $W_1$. Activation defense recovers roughly half of the score degradation; text-rewrite defense recovers under 15\%. Full tables in \Cref{app:defense_full}.}
-\label{tab:defense_summary}
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{l l c c c}
-\toprule
-\textbf{Bias} & \textbf{Method} & $W_1$-red.\,$\uparrow$ & $\rho_S$\,$\uparrow$ & \textbf{Valid.}\,$\uparrow$ \\
-\midrule
-\multirow{2}{*}{Authority$-$} & Text Rewrite & 0.11 & 0.74 & 100\% \\
-                              & \textbf{Classifier} (ours) & \textbf{0.62} & \textbf{0.81} & 96.5\% \\
-\midrule
-\multirow{2}{*}{Bandwagon$-$} & Text Rewrite & 0.09 & 0.56 & 100\% \\
-                              & \textbf{PCA} (ours) & \textbf{0.61} & \textbf{0.67} & 95.9\% \\
-\midrule
-\multirow{2}{*}{Refinement$-$} & Text Rewrite & 0.15 & 0.77 & 100\% \\
-                               & \textbf{Classifier} (ours) & \textbf{0.52} & \textbf{0.83} & 97.1\% \\
-\bottomrule
-\end{tabular}
-\end{table}
+Four additional patterns across the full sweep are detailed in \Cref{app:attack_full,app:defense_full}: \emph{(i)} optimal $\alpha^{*}$ varies by more than an order of magnitude across bias types and methods, so no single calibrated strength transfers; \emph{(ii)} $\alpha^{*}$ generally grows with layer depth, with a characteristic drop at the final layer where interventions disrupt ordinal logic more aggressively; \emph{(iii)} no single best estimator---Classifier vectors typically yield the strongest push, Geometric Median vectors the most ordinally gentle, and PCA occasionally wins at deep layers; and \emph{(iv)} the 95\% validity constraint is active in $<10\%$ of configurations, so Spearman consistency rather than output corruption is the binding factor. The vector-selection cosine matrix backing the three retained representatives (Geometric Median, PCA, Classifier) is in \Cref{tab:vector_cosine}.
 
 Taken together with the layer-wise quantification in \Cref{subsec:layer_analysis}, these steering experiments establish a complete picture: the bias direction is geometrically stable (\Cref{subsec:fair_region,subsec:directional_separation}), increasingly concentrated and linearly recoverable with depth (\Cref{subsec:layer_analysis}), and \emph{causally} responsible for the judge's biased scores.
 
@@ -603,7 +418,56 @@ We partition the data into training (45\%), development (15\%), and test (40\%) 
 \label{app:bias_design}
 \phantomsection\label{subsec:bias_design}
 
-The full taxonomy, its provenance in prior LLM-as-a-judge bias literature, and the exact positive/negative construction rules for each of the seven types are presented in \Cref{tab:bias_construction} of \Cref{subsec:setup_brief}. Here we record two design constraints that govern the construction procedure. First, most transformations simply append or prepend short contextual notes, leaving the answer body untouched; only Verbosity and Sentiment involve lexical edits to the answer text, and those are constrained to minimal edits that preserve factual content and logical structure. Second, every transformation is applied automatically via an LLM or a deterministic template, so that the perturbation pipeline is fully reproducible and independent of any specific answer content. A human evaluation confirms no significant quality degradation for the two content-modifying types (\Cref{app:human_eval}); representative before/after examples for all seven types are provided in \Cref{app:perturbation_examples}.
+\Cref{tab:bias_construction} lists the seven bias types and the exact positive/negative construction rules we apply to instantiate each. The provenance of each type in prior LLM-as-a-judge bias literature is discussed in \Cref{app:related_bias}. Two design constraints govern the construction procedure. First, most transformations simply append or prepend short contextual notes, leaving the answer body untouched; only Verbosity and Sentiment involve lexical edits to the answer text, and those are constrained to minimal edits that preserve factual content and logical structure. Second, every transformation is applied automatically via an LLM or a deterministic template, so that the perturbation pipeline is fully reproducible and independent of any specific answer content. A human evaluation confirms no significant quality degradation for the two content-modifying types (\Cref{app:human_eval}); representative before/after examples for all seven types are provided in \Cref{app:perturbation_examples}.
+
+\begin{table*}[t]
+    \caption{The seven bias types studied in this paper and the operational transformations we apply to construct positively and negatively perturbed variants. Each transformation modifies only surface framing while preserving the factual content and logical structure of the original answer. Provenance in prior LLM-as-a-judge literature is discussed in \Cref{app:related_bias}.}
+    \label{tab:bias_construction}
+    \scriptsize
+    \renewcommand{\arraystretch}{1.5}
+    \rowcolors{2}{gray!8}{white}
+    \centering
+    \begin{tabular}{p{1.8cm} p{3.3cm} p{4.3cm} p{4.3cm}}
+        \toprule
+        \textbf{Bias Type} & \textbf{Description} & \textbf{Positive Construction} & \textbf{Negative Construction} \\
+        \midrule
+        \faStar\ \textbf{Prestige}
+        & Whether scoring is influenced by perceived source reputation or model provenance.
+        & Prepend a source attribution suggesting a high-capability origin (\eg, prefixing with \texttt{``GPT-4:''}).
+        & Prepend a source attribution suggesting an outdated or less capable origin (\eg, prefixing with \texttt{``GPT-2:''}). \\
+
+        \faAlignLeft\ \textbf{Verbosity}
+        & Whether the judge systematically favors more elaborate or more concise responses, independent of content.
+        & Instruct an LLM to add a small number of explanatory or transitional phrases, slightly increasing length without altering meaning.
+        & Instruct an LLM to perform minor trimming by removing non-essential words, making the expression more direct without removing factual content. \\
+
+        \faUsers\ \textbf{Bandwagon}
+        & Whether scoring is affected by signals of social consensus or peer opinion.
+        & Append a contextual note indicating that a majority of prior reviewers rated the response favorably (\eg, ``92\% of reviewers found this helpful'').
+        & Append a contextual note indicating that a majority of prior reviewers expressed dissatisfaction (\eg, ``87\% of reviewers found this unhelpful''). \\
+
+        \faFileSignature\ \textbf{Authority}
+        & Whether the judge is influenced by markers of academic credibility or the absence thereof.
+        & Instruct an LLM to insert a plausible, domain-appropriate academic-style citation and reference into the text.
+        & Instruct an LLM to insert \texttt{[citation needed]} markers after key claims and append a note questioning the evidentiary basis. \\
+
+        \faGrinSquintTears[regular]\ \textbf{Sentiment}
+        & Whether scoring is swayed by the emotional tone or objectivity of the writing style.
+        & Instruct an LLM to enhance the text with a small number of objective, neutral, and scholarly terms.
+        & Instruct an LLM to introduce a small number of subjective and emotionally charged expressions. \\
+
+        \faPenNib\ \textbf{Refinement}
+        & Whether the judge is influenced by explicit metacognitive claims about the answer's quality or review status.
+        & Append a statement indicating the response has undergone careful revision (\eg, ``This response has been carefully revised and professionally refined'').
+        & Append a statement indicating the response is unprocessed output (\eg, ``This is raw AI output that has not been reviewed by any human''). \\
+
+        \faTransgender*\ \textbf{Diversity}
+        & Whether the judge exhibits differential treatment based on the stated social identity of the author.
+        & Append an attribution noting the author belongs to a positively perceived social group (\eg, ``provided by an LGBTQ+ advocate'').
+        & Append an attribution noting the author belongs to a negatively perceived social group (\eg, ``provided by an extremist''). \\
+        \bottomrule
+    \end{tabular}
+\end{table*}
 
 \subsection{Models and Evaluation Protocol}
 \label{app:protocol}
@@ -641,22 +505,24 @@ Each pair was evaluated by three annotators (balanced assignment). We report the
 
 \textbf{Results.}
 
-\begin{table}[h!]
+\begin{table}[t]
 \centering
+\small
+\setlength{\tabcolsep}{3pt}
 \caption{Human evaluation results for content-modifying perturbations. Ratings are on a 5-point Likert scale (3 = equivalent). We report the mean $\pm$ std and the percentage of ratings indicating degradation ($\leq 2$).}
 \label{tab:human_eval}
 \begin{tabular}{l cc cc}
 \toprule
 & \multicolumn{2}{c}{\textbf{Verbosity}} & \multicolumn{2}{c}{\textbf{Sentiment}} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5}
-\textbf{Dimension} & Mean $\pm$ Std & \% Degraded & Mean $\pm$ Std & \% Degraded \\
+\textbf{Dimension} & Mean$\pm$SD & \%\,Deg. & Mean$\pm$SD & \%\,Deg. \\
 \midrule
-Factual Consistency & 2.95 $\pm$ 0.23 & 1.7\% & 2.96 $\pm$ 0.21 & 1.3\% \\
-Logical Coherence   & 2.91 $\pm$ 0.31 & 3.1\% & 2.93 $\pm$ 0.28 & 2.4\% \\
-Completeness        & 2.87 $\pm$ 0.36 & 4.3\% & 2.94 $\pm$ 0.25 & 1.9\% \\
-Overall Quality     & 2.81 $\pm$ 0.42 & 6.2\% & 2.84 $\pm$ 0.39 & 5.1\% \\
+Factual Cons. & 2.95$\pm$0.23 & 1.7 & 2.96$\pm$0.21 & 1.3 \\
+Logical Coh.  & 2.91$\pm$0.31 & 3.1 & 2.93$\pm$0.28 & 2.4 \\
+Completeness  & 2.87$\pm$0.36 & 4.3 & 2.94$\pm$0.25 & 1.9 \\
+Overall Qual. & 2.81$\pm$0.42 & 6.2 & 2.84$\pm$0.39 & 5.1 \\
 \midrule
-Inter-annotator $\kappa$ & \multicolumn{2}{c}{0.73} & \multicolumn{2}{c}{0.69} \\
+Inter-ann.\ $\kappa$ & \multicolumn{2}{c}{0.73} & \multicolumn{2}{c}{0.69} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -824,13 +690,72 @@ Asymmetry tests (\Cref{subsec:asymmetry}) use Welch's two-sample $t$-test on the
 All experiments use seed 42. The 45/15/40 split is fixed at the question-ID level and stored on disk, so partitions never depend on a random call at inference time. Code, configuration files, and the integer-score outputs of every judge will be released under MIT; raw activations exceed 200\,GB and will be regeneratable from the released code rather than redistributed. An EMNLP-style reproducibility checklist accompanies the submission.
 
 
+\section{Bias Landscape Details}
+\label{app:landscape_details}
+
+\Cref{tab:bias_type_impact} reports the per-type mean scores for \textsc{Llama-3.1-8B} (baseline mean 5.84) referenced in \Cref{subsec:landscape}, and \Cref{fig:bias_heatmap} shows the per-type, per-domain heatmap.
+
+\begin{table}[h!]
+\centering
+\small
+\caption{Impact of individual bias attributes on the mean score from \textsc{Llama-3.1-8B} (baseline mean 5.84). Effect glyphs encode magnitude.}
+\label{tab:bias_type_impact}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{l cc l cc}
+\toprule
+\multicolumn{3}{c}{\cellcolor{blue!10}\faThumbsUp[regular] \textbf{Positive}} & \multicolumn{3}{c}{\cellcolor{red!10}\faThumbsDown[regular] \textbf{Negative}} \\
+\cmidrule(r){1-3} \cmidrule(l){4-6}
+\textbf{Type} & \textbf{Mean} & \textbf{Eff.} & \textbf{Type} & \textbf{Mean} & \textbf{Eff.} \\
+\midrule
+Refinement & 6.61 & \textcolor{teal}{$\uparrow\uparrow\uparrow$} & Bandwagon & 4.28 & \textcolor{red}{$\downarrow\downarrow\downarrow$} \\
+Sentiment & 6.01 & \textcolor{teal}{$\uparrow$} & Diversity & 4.90 & \textcolor{red}{$\downarrow\downarrow$} \\
+Verbosity & 6.00 & \textcolor{teal}{$\uparrow$} & Authority & 5.05 & \textcolor{red}{$\downarrow\downarrow$} \\
+Authority & 5.86 & \textcolor{gray}{$\sim$} & Refinement & 5.27 & \textcolor{red}{$\downarrow$} \\
+Prestige & 5.85 & \textcolor{gray}{$\sim$} & Verbosity & 5.24 & \textcolor{red}{$\downarrow$} \\
+Diversity & 5.65 & \textcolor{orange}{$\downarrow$} & Prestige & 5.46 & \textcolor{orange}{$\downarrow$} \\
+Bandwagon & 5.38 & \textcolor{orange}{$\downarrow\downarrow$} & Sentiment & 5.77 & \textcolor{gray}{$\sim$} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{images/bias_heatmap.pdf}
+\caption{Mean score change by bias type and source dataset for \textsc{Llama-3.1-8B}. \textbf{(a)} Positive biases. \textbf{(b)} Negative biases. CSQA denotes CommonsenseQA. Vulnerability is not uniform---certain domains are differentially susceptible to specific bias types.}
+\label{fig:bias_heatmap}
+\end{figure*}
+
+
 \section{Cross-Model Replication}
 \label{app:model_replication}
 
 \subsection{Asymmetric Response Across Models}
 \label{app:asymmetry_replication}
 
-\Cref{tab:asymmetry_all_models} replicates the asymmetric response experiment from \Cref{subsec:asymmetry} across all seven judge models under the default \emph{strict, non-CoT} configuration. The core finding---negative perturbations induce substantial score degradation while positive perturbations have minimal effect---holds consistently across all models, though the magnitude varies. Smaller open-source models (\eg, \textsc{Llama-3.1-8B}) exhibit the strongest negative bias effects, while larger proprietary models (\eg, \textsc{GPT-4.1}) show comparatively attenuated but still highly significant effects.
+\Cref{tab:asymmetric_scoring} reports the asymmetric response of \textsc{GPT-4.1} across the four prompt configurations referenced in \Cref{subsec:asymmetry}. Negative perturbations consistently produce large, statistically significant score drops (Cohen's $d \in [-0.58, -0.35]$, all $p < 10^{-3}$), while positive perturbations yield negligible shifts ($d \approx 0$, no significant $p$-values). The pattern persists regardless of whether CoT or strict scoring is used, ruling out prompting artifacts; the strict configurations lower the baseline mean from ${\sim}8.5$ to ${\sim}5.5$, eliminating the possibility that the absence of positive inflation is merely a ceiling effect.
+
+\begin{table*}[t]
+\centering
+\caption{Asymmetric scoring response to positive and negative perturbations across the four prompt configurations for \textbf{GPT-4.1}. We report the baseline mean score ($\bar{s}_{\text{base}}$), mean score difference ($\Delta \bar{s}$), Cohen's d, t-test p-value, and 1-Wasserstein distance ($W_1$). Negative perturbations consistently induce a substantial penalty, while positive perturbations have a negligible effect.}
+\label{tab:asymmetric_scoring}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{\hskip 2pt}c@{\hskip 2pt}c@{\hskip 2pt}c@{\hskip 4pt}cccccccc@{}}
+\toprule
+\multicolumn{2}{c}{\textbf{Config.}} & \multirow{2}{*}{\textbf{$\bar{s}_{\text{base}}$}} & \multicolumn{4}{c}{\cellcolor{blue!10} \faThumbsUp[regular] \textbf{Positive Bias} ($\mathcal{D}_{\text{pos}}$ vs. $\mathcal{D}_{\text{base}}$)} & \multicolumn{4}{c}{\cellcolor{red!10} \faThumbsDown[regular] \textbf{Negative Bias} ($\mathcal{D}_{\text{neg}}$ vs. $\mathcal{D}_{\text{base}}$)} \\
+\cmidrule(lr){4-7} \cmidrule(lr){8-11}
+\textbf{CoT} & \textbf{Strict} & & $\Delta \bar{s}$ & Cohen's d & p-value & $W_1$ Dist. & $\Delta \bar{s}$ & Cohen's d & p-value & $W_1$ Dist. \\
+\midrule
+\rowcolor{gray!5}
+\faCheck & \faTimes & 8.71 & -0.055 & -0.043 & 0.669 & 0.085 & -0.855 & -0.582 & $< 10^{-8}$ & 0.855 \\
+\faTimes & \faTimes & 8.46 & -0.010 & -0.008 & 0.940 & 0.080 & -0.745 & -0.486 & $< 10^{-5}$ & 0.755 \\
+\rowcolor{gray!5}
+\faCheck & \faCheck & 5.72 & +0.025 & +0.032 & 0.750 & 0.095 & -0.350 & -0.382 & $< 10^{-3}$ & 0.370 \\
+\faTimes & \faCheck & 5.27 & +0.020 & +0.021 & 0.838 & 0.060 & -0.360 & -0.346 & $< 10^{-3}$ & 0.370 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\Cref{tab:asymmetry_all_models} replicates the asymmetric response experiment across all seven judge models under the default \emph{strict, non-CoT} configuration. The core finding---negative perturbations induce substantial score degradation while positive perturbations have minimal effect---holds consistently across all models, though the magnitude varies. Smaller open-source models (\eg, \textsc{Llama-3.1-8B}) exhibit the strongest negative bias effects, while larger proprietary models (\eg, \textsc{GPT-4.1}) show comparatively attenuated but still highly significant effects.
 
 \begin{table*}[h!]
 \centering
@@ -860,7 +785,7 @@ All experiments use seed 42. The 45/15/40 split is fixed at the question-ID leve
 
 \Cref{fig:score_dist_all} shows the per-model score distributions. Across all models, the positive perturbation distribution nearly overlaps with the baseline, while the negative perturbation distribution shifts markedly leftward. The magnitude of the shift roughly tracks model capability: \textsc{Llama-3.1-8B} exhibits the largest separation, followed by the mid-scale models (\textsc{Qwen3-14B}, \textsc{Gemma-3-12B}, \textsc{GPT-4o-Mini}), and the frontier models (\textsc{Llama-3.3-70B}, \textsc{Deepseek-V3}, \textsc{GPT-4.1}) show smaller---though still statistically significant---shifts.
 
-\begin{figure}[h!]
+\begin{figure*}[t]
 \centering
 \begin{subfigure}[b]{0.48\textwidth}
     \includegraphics[width=\textwidth]{images/score_distribution_GPT-4.1.pdf}
@@ -893,26 +818,26 @@ All experiments use seed 42. The 45/15/40 split is fixed at the question-ID leve
 \end{subfigure}
 \caption{Score distributions under the \emph{strict, non-CoT} configuration for all seven judge models (the \textsc{Llama-3.1-8B} distribution is shown in the main text, \Cref{fig:score_dist}). In every case, the negative perturbation distribution (right tail) shifts substantially leftward relative to the baseline, while the positive perturbation distribution remains largely unchanged.}
 \label{fig:score_dist_all}
-\end{figure}
+\end{figure*}
 
 \subsection{Geometric Separation Across Models}
 \label{app:geometric_replication}
 
 The type-specific geometric separation reported in \Cref{subsec:directional_separation} for \textsc{Llama-3.1-8B} generalizes across architectures. \Cref{fig:mds_qwen,fig:mds_gemma} present MDS projections of per-sample effective bias vectors $\Delta \vec{h}_l$ for Refinement (positive) and Diversity (negative) on \textsc{Qwen3-14B} and \textsc{Gemma-3-12B}, respectively. Both models exhibit the same progressive separation with layer depth, confirming that type-specific geometric signatures are a general property of LLM judge activations rather than an architecture-specific artifact.
 
-\begin{figure}[h!]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{images/effective_bias_vectors_ref_div_qwen.pdf}
 \caption{MDS projection of per-sample effective bias vectors for Refinement+ and Diversity- at layers 5, 15, and 25 of \textsc{Qwen3-14B}. The progressive separation mirrors that observed in \textsc{Llama-3.1-8B} (\Cref{fig:mds_bias_vectors}).}
 \label{fig:mds_qwen}
-\end{figure}
+\end{figure*}
 
-\begin{figure}[h!]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{images/effective_bias_vectors_ref_div_gemma.pdf}
 \caption{MDS projection of per-sample effective bias vectors for Refinement+ and Diversity- at layers 5, 15, and 25 of \textsc{Gemma-3-12B}.}
 \label{fig:mds_gemma}
-\end{figure}
+\end{figure*}
 
 \section{Complete Attack Results}
 \label{app:attack_full}
@@ -924,12 +849,12 @@ This appendix provides the full materials supporting \Cref{subsec:causal}: the b
 
 We extracted six candidate bias vectors---three \emph{directional-change} (Mean, Geometric Median, PCA) and three \emph{discriminative-boundary} (LDA, Classifier, SVM)---from the training set of \textsc{Llama-3.1-8B} for each bias type. \Cref{tab:vector_cosine} reports the pairwise cosine similarity averaged across Authority$-$, Bandwagon$-$, and Refinement$-$ at layer 25.
 
-\begin{table}[h!]
+\begin{table}[t]
 \centering
 \small
 \caption{Mean pairwise cosine similarity between the six candidate bias vectors at layer 25 of \textsc{Llama-3.1-8B}, averaged across three negative bias types. Within each family (shaded blocks on the diagonal), agreement is high; cross-family agreement is noticeably lower, motivating our three-representative selection.}
 \label{tab:vector_cosine}
-\setlength{\tabcolsep}{5pt}
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{l cccccc}
 \toprule
  & Mean & Geom. Med. & PCA & LDA & Classifier & SVM \\
@@ -1127,42 +1052,42 @@ The tables above report only the layer-optimal configuration for each (bias, met
 \paragraph{Per-bias optimal $\alpha$.}
 \Cref{fig:attack_alpha_per_bias} plots the optimal intervention strength $\alpha^{*}$ as a function of layer for each of the six bias types, with one curve per vector method. Three patterns repeat across biases: (i) $\alpha^{*}$ stays in the single digits up to roughly layer 15 and then climbs steeply; (ii) PCA consistently demands the largest strength at the late layers, often two to three times larger than the Geometric Median; and (iii) the very last layer (31) tends to require a smaller $\alpha^{*}$ than layer 30 because the score-readout projection makes the model more sensitive to any displacement, tightening the Spearman constraint.
 
-\begin{figure}[h!]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{images/attack_alpha_per_bias.pdf}
 \caption{Optimal intervention strength $\alpha^{*}$ as a function of layer for each of the six bias types, separately for the three vector methods (Geometric Median, PCA, Classifier). Layer indices are sampled at $\{1,4,7,12,15,18,25,30,31\}$. PCA consistently requires the largest strength at the late layers; all methods drop at layer 31 because the score-readout projection tightens the Spearman constraint.}
 \label{fig:attack_alpha_per_bias}
-\end{figure}
+\end{figure*}
 
 \paragraph{Validity remains saturated.}
 \Cref{fig:attack_success_heatmap} reports the output validity rate of the attack (fraction of perturbed inputs whose decoded score is still an integer in $\{1,\dots,10\}$) across all bias-layer combinations. Validity sits in $[0.96, 1.00]$ everywhere. The binding constraint on $\alpha^{*}$ is therefore the Spearman correlation, not generation integrity: the model still decodes a valid integer under strong activation steering, but the ordinal logic between answer quality and score breaks down before any malformed output appears.
 
-\begin{figure}[h!]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=0.85\textwidth]{images/attack_success_heatmap.pdf}
 \caption{Output validity rate of the activation attack averaged over the three vector methods, for each (bias, layer) cell. All cells lie in $[0.96, 1.00]$: malformed decodes are not the binding constraint, the Spearman constraint is.}
 \label{fig:attack_success_heatmap}
-\end{figure}
+\end{figure*}
 
 \paragraph{$\alpha^{*}$ and $W_1$ across the layer stack.}
 \Cref{fig:attack_metrics_across_layers} summarizes the same data along the layer axis by averaging over methods. The top panel shows that all six biases share the same qualitative ``hockey-stick'' shape in $\alpha^{*}$, with Bandwagon$-$ requiring the largest strength at the late layers and Refinement$+$ the smallest. The bottom panel shows the corresponding score-shift: $W_1$ stays in $[0.4, 0.7]$ across the middle layers, then jumps at layer 31 for the strongest biases (Bandwagon$-$ to $1.75$). The narrow band of mid-layer $W_1$ confirms that the bias signal is broadly distributed in depth, not concentrated at a single ``critical'' layer.
 
-\begin{figure}[h!]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{images/attack_metrics_across_layers.pdf}
 \caption{Average optimal $\alpha$ (top) and average Wasserstein distance $W_1$ (bottom) across the layer stack, with one curve per bias type. Values are averaged over the three vector methods. All six biases share the same hockey-stick shape in $\alpha^{*}$, with the steepest climb at layers 30--31.}
 \label{fig:attack_metrics_across_layers}
-\end{figure}
+\end{figure*}
 
 \paragraph{Method-level behavior.}
 \Cref{fig:attack_metrics_by_method} averages instead over biases and separates the three vector methods. PCA needs the largest $\alpha$ but also produces the largest $W_1$, especially at the deep layers; Classifier vectors sit in the middle on both axes; Geometric Median is the gentlest, with the smallest $\alpha$, the smallest $W_1$, and the highest Spearman correlation. Together with the per-bias plots above, this is why we keep all three representatives in \Cref{subsec:causal}: the three methods sit at distinct points in the (strength, faithfulness) plane rather than along a single axis.
 
-\begin{figure}[h!]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{images/attack_metrics_by_method.pdf}
 \caption{Average optimal $\alpha$, average Wasserstein distance $W_1$, and average Spearman correlation $\rho_S$ as a function of layer, separately for the three vector methods (averaged over the six bias types). PCA produces the strongest attacks at the cost of the lowest ordinal faithfulness; Geometric Median is the gentlest on both axes; Classifier sits in between.}
 \label{fig:attack_metrics_by_method}
-\end{figure}
+\end{figure*}
 
 
 \section{Defense Results}
@@ -1206,52 +1131,74 @@ Defense results mirror the attack findings in structure: activation-based defens
 \section{Additional Activation Visualizations}
 \label{app:visualizations}
 
+\subsection{Fair Region at Layer 25}
+
+\Cref{fig:activation_mds_combined} shows the MDS projection underlying the fair-region discussion in \Cref{subsec:fair_region}: at layer 25, baseline activations form a tight cluster while the vast majority of biased activations---across polarities---are displaced. Re-coloring by score (b) or source dataset (c) shows no correlation with the clusters, confirming that the separation reflects bias rather than scoring distribution or domain.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{images/activation_mds_layer25_combined.pdf}
+\caption{MDS projection of final-token activations at layer 25 of \textsc{Llama-3.1-8B} for $\mathcal{D}_{\text{base}}$ and four bias types (Bandwagon$-$, Diversity$-$, Refinement$+$, Sentiment$+$). \textbf{(a)} Points colored by bias condition: baseline activations form a tight cluster, while most biased activations are displaced to a distant region regardless of polarity. \textbf{(b)} Points colored by assigned score. \textbf{(c)} Points colored by source dataset. Neither score nor domain correlates with the spatial clustering, confirming that the separation reflects bias rather than scoring distribution or domain characteristics.}
+\label{fig:activation_mds_combined}
+\end{figure*}
+
 \subsection{Activation MDS Across Layers}
 
 \Cref{fig:activation_mds_layers} presents MDS projections of absolute activations at layers 5, 15, and 25 of \textsc{Llama-3.1-8B}. The same pattern holds across all layers: baseline activations form a tight cluster, while most negatively biased activations are displaced to a distant region, with a small subset remaining anomalously close to the baseline.
 
-\begin{figure}[h!]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{images/activation_mds_layers_combined.pdf}
 \caption{MDS projection of final-token activations at layers 5, 15, and 25 of \textsc{Llama-3.1-8B} for $\mathcal{D}_{\text{base}}$ and $\mathcal{D}_{\text{neg}}$. The clustering pattern---tight baseline region with displaced biased activations---is consistent across layers.}
 \label{fig:activation_mds_layers}
-\end{figure}
+\end{figure*}
 
-\subsection{Cross-Type Geometric Separation}
+\subsection{Cross-Polarity Geometric Separation}
 
-\Cref{fig:mds_neg_neg} presents MDS projections of per-sample effective bias vectors $\Delta \vec{h}_l$ for two \emph{negative} bias types---Bandwagon and Diversity---at layers 5, 15, and 25. As with the cross-polarity comparison in the main text (\Cref{fig:mds_bias_vectors}), the two negative types become increasingly separable in deeper layers, confirming that geometric distinction is a general property of bias-type representations, not an artifact of polarity differences.
+\Cref{fig:mds_bias_vectors} presents MDS projections of $\Delta \vec{h}_l$ for two contrasting bias types---Refinement (positive) and Diversity (negative)---at layers 5, 15, and 25. The two populations are weakly distinguished at layer 5, more clearly separated at layer 15, and fully distinct at layer 25, confirming that different bias types induce type-specific geometric signatures that sharpen with depth.
 
-\begin{figure}[h!]
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{images/effective_bias_vectors_ref_div_llama.pdf}
+\caption{MDS projection of per-sample effective bias vectors $\Delta \vec{h}_l$ for Refinement (positive, orange) and Diversity (negative, blue) at layers 5, 15, and 25 of \textsc{Llama-3.1-8B}. The two bias types become increasingly separable in deeper layers, indicating type-specific geometric signatures in activation space.}
+\label{fig:mds_bias_vectors}
+\end{figure*}
+
+\subsection{Same-Polarity Geometric Separation}
+
+\Cref{fig:mds_neg_neg} presents MDS projections of per-sample effective bias vectors $\Delta \vec{h}_l$ for two \emph{negative} bias types---Bandwagon and Diversity---at layers 5, 15, and 25. As with the cross-polarity comparison (\Cref{fig:mds_bias_vectors}), the two negative types become increasingly separable in deeper layers, confirming that geometric distinction is a general property of bias-type representations, not an artifact of polarity differences.
+
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{images/effective_bias_vectors_3layers.pdf}
 \caption{MDS projection of per-sample effective bias vectors $\Delta \vec{h}_l$ for Bandwagon (red) and Diversity (blue) negative biases at layers 5, 15, and 25 of \textsc{Llama-3.1-8B}. The two negative bias types exhibit progressive geometric separation in deeper layers.}
 \label{fig:mds_neg_neg}
-\end{figure}
+\end{figure*}
 
 \subsection{Magnitude Consistency Across Layers}
 \label{app:l2_norm}
 
 \Cref{fig:l2_norm} plots the per-layer mean L2 norm of final-token activations for $\mathcal{D}_{\text{base}}$ and $\mathcal{D}_{\text{neg}}$ on \textsc{Llama-3.1-8B}. The two trajectories are statistically indistinguishable at every layer, with the maximum relative gap (3.5\%) concentrated at the final score-readout layer where the linear head projects the activation onto the score logits. Everywhere else the gap sits below 2\%. Bias is therefore encoded in the \emph{direction} of the activation displacement rather than in its magnitude. This is why we unit-normalize the vector estimators throughout \Cref{subsec:bias_direction,subsec:causal}, and why we define the biased core in terms of Mahalanobis distance, as in \Cref{tab:layerwise}.
 
-\begin{figure}[h!]
+\begin{figure}[t]
 \centering
-\includegraphics[width=0.7\textwidth]{images/l2_norm_layers.pdf}
+\includegraphics[width=\columnwidth]{images/l2_norm_layers.pdf}
 \caption{Mean L2 norm of final-token activations across the 32 decoder layers of \textsc{Llama-3.1-8B} for the baseline set $\mathcal{D}_{\text{base}}$ (blue, solid) and the negatively perturbed set $\mathcal{D}_{\text{neg}}$ (red, dashed). Shaded bands denote $\pm 1$ SD across samples. Bias does not change how far the activation moves; only the direction in which it moves.}
 \label{fig:l2_norm}
 \end{figure}
 
 \subsection{PCA Analysis of Activation Space}
 
-\begin{wrapfigure}{r}{0.35\textwidth}
+\begin{wrapfigure}{r}{0.48\columnwidth}
 \vspace{-1em}
 \centering
-\includegraphics[width=0.34\textwidth]{images/pca_activation.pdf}
+\includegraphics[width=0.47\columnwidth]{images/pca_activation.pdf}
 \caption{PCA projection of final-token activations at layer 25 of \textsc{Llama-3.1-8B}, colored by bias type. Baseline activations cluster tightly into a fair zone, mirroring the MDS visualization in the main text.}
 \label{fig:pca_appendix}
 \vspace{-1em}
 \end{wrapfigure}
 
-\Cref{fig:pca_appendix} shows a PCA projection of final-token activations at layer 25 of \textsc{Llama-3.1-8B}, colored by bias type. Consistent with the MDS analysis in the main text (\Cref{fig:activation_mds_combined}), baseline activations form a tight cluster---the fair zone---while effective bias samples from different bias types are displaced away from this region. The agreement between MDS and PCA confirms that the fair zone is a robust geometric property of the activation space, not an artifact of a particular dimensionality reduction method.
+\Cref{fig:pca_appendix} shows a PCA projection of final-token activations at layer 25 of \textsc{Llama-3.1-8B}, colored by bias type. Consistent with the MDS analysis (\Cref{fig:activation_mds_combined}), baseline activations form a tight cluster---the fair zone---while effective bias samples from different bias types are displaced away from this region. The agreement between MDS and PCA confirms that the fair zone is a robust geometric property of the activation space, not an artifact of a particular dimensionality reduction method.
 
 \section{Detection Pipeline Details}
 \label{app:detection_details}
